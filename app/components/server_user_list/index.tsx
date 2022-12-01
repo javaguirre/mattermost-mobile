@@ -17,6 +17,7 @@ type Props = {
     tutorialWatched: boolean;
     handleSelectProfile: (user: UserProfile) => void;
     term: string;
+    selectable?: boolean;
 }
 
 function handleIdSelection(currentIds: {[id: string]: UserProfile}, user: UserProfile) {
@@ -38,6 +39,7 @@ export default function ServerUserList({
     teammateNameDisplay,
     tutorialWatched,
     handleSelectProfile,
+    selectable = false,
     term,
 }: Props) {
     const serverUrl = useServerUrl();
@@ -145,6 +147,7 @@ export default function ServerUserList({
             term={term}
             testID='create_direct_message.user_list'
             tutorialWatched={tutorialWatched}
+            selectable={selectable}
         />
     );
 }

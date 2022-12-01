@@ -18,6 +18,7 @@ type Props = {
     channels: Channel[];
     onSelectChannel: (channel: Channel) => void;
     term?: string;
+    selectable?: boolean;
 }
 
 const channelKeyExtractor = (channel: Channel) => {
@@ -54,6 +55,7 @@ export default function ChannelList({
     loading,
     term,
     channels,
+    selectable = false,
 }: Props) {
     const theme = useTheme();
 

@@ -14,6 +14,7 @@ type Props = {
     handleSelectChannel: (channel: Channel) => void;
     term: string;
     currentTeamId: string;
+    selectable?: boolean;
 }
 
 function handleIdSelection(currentIds: {[id: string]: Channel}, user: Channel) {
@@ -33,6 +34,7 @@ export default function ServerChannelList({
     handleSelectChannel,
     term,
     currentTeamId,
+    selectable = false,
 }: Props) {
     const serverUrl = useServerUrl();
 

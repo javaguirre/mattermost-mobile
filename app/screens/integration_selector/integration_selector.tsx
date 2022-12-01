@@ -421,6 +421,7 @@ function IntegrationSelector(
                         term={term}
                         tutorialWatched={true}
                         handleSelectProfile={handleSelectDataType}
+                        selectable={isMultiselect}
                     />
                 );
             case ViewConstants.DATA_SOURCE_CHANNELS:
@@ -429,6 +430,7 @@ function IntegrationSelector(
                         currentTeamId={currentTeamId}
                         term={term}
                         handleSelectChannel={handleSelectDataType}
+                        selectable={isMultiselect}
                     />
                 );
             default:
