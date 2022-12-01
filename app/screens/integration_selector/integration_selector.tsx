@@ -7,6 +7,7 @@ import {View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {fetchChannels, searchChannels} from '@actions/remote/channel';
+import ServerChannelList from '@app/components/server_channel_list';
 import ServerUserList from '@app/components/server_user_list';
 import {t} from '@app/i18n';
 import FormattedText from '@components/formatted_text';
@@ -286,6 +287,15 @@ function IntegrationSelector(
         setSelectedIds((current) => handleIdSelection(dataSource, current, user));
     }, [isMultiselect, handleIdSelection, handleSelect, close, dataSource]);
 
+    const handleSelectChannel = useCallback((channel: Channel): void => {
+        if (!isMultiselect) {
+            handleSelect(channel);
+            close();
+        }
+
+        setSelectedIds((current) => handleIdSelection(dataSource, current, channel));
+    }, [isMultiselect, handleIdSelection, handleSelect, close, dataSource]);
+
     const onHandleMultiselectSubmit = useCallback(() => {
         if (dataSource === ViewConstants.DATA_SOURCE_USERS) {
             // New multiselect
@@ -515,6 +525,15 @@ function IntegrationSelector(
                         tutorialWatched={true}
                         handleSelectProfile={handleSelectProfile}
                     />
+                );
+            case ViewConstants.DATA_SOURCE_CHANNELS:
+                return (
+                    <ServerChannelList
+                        currentTeamId={currentTeamId}
+                        term={term}
+                        handleSelectChannel={handleSelectChannel}
+                    />
+
                 );
             default:
                 return (
