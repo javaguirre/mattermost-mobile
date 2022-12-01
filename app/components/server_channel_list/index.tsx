@@ -4,8 +4,8 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {fetchChannels, searchChannels as searchChannelsRemote} from '@actions/remote/channel';
-import ChannelList from '@app/screens/browse_channels/channel_list';
 import {filterChannelsMatchingTerm} from '@app/utils/channel';
+import ChannelList from '@components/channel_list';
 import {General} from '@constants';
 import {useServerUrl} from '@context/server';
 import {debounce} from '@helpers/api/general';
