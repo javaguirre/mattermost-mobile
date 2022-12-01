@@ -18,7 +18,7 @@ type Props = {
     channels: Channel[];
     onSelectChannel: (channel: Channel) => void;
     term?: string;
-    selectedIds: {[id: string]: Channel};
+    selectedIds?: {[id: string]: Channel};
     selectable?: boolean;
 }
 
@@ -56,7 +56,7 @@ export default function ChannelList({
     loading,
     term,
     channels,
-    selectedIds,
+    selectedIds = {},
     selectable = false,
 }: Props) {
     const theme = useTheme();
