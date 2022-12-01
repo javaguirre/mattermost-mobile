@@ -65,7 +65,7 @@ const toggleFromMap = <T extends DialogOption | Channel | UserProfile>(current: 
     return newMap;
 };
 
-const filterSearchData = (source: string, searchData: DataTypeList, searchTerm: string) => {
+const filterSearchData = (source: string, searchData: DialogOption[], searchTerm: string) => {
     if (!searchData) {
         return [];
     }
@@ -76,7 +76,7 @@ const filterSearchData = (source: string, searchData: DataTypeList, searchTerm: 
         return searchData;
     }
 
-    return (searchData as DialogOption[]).filter((option) => option.text && option.text.includes(lowerCasedTerm));
+    return searchData.filter((option) => option.text && option.text.includes(lowerCasedTerm));
 };
 
 const handleIdSelection = (dataSource: string, currentIds: {[id: string]: DataType}, item: DataType) => {
@@ -163,11 +163,13 @@ function IntegrationSelector(
     const [term, setTerm] = useState<string>('');
     const [searchResults, setSearchResults] = useState<DataTypeList>([]);
 
-    // Channels and DialogOptions, will be removed
+    // DialogOptions, will be removed
     const [multiselectSelected, setMultiselectSelected] = useState<MultiselectSelectedMap>({});
 
-    // Users selection and in the future Channels and DialogOptions
+    // Users, Channels selection
     const [selectedIds, setSelectedIds] = useState<{[id: string]: DataType}>({});
+
+    // Deprecated
     const [customListData, setCustomListData] = useState<DataTypeList>([]);
 
     const page = useRef<number>(-1);
@@ -231,28 +233,19 @@ function IntegrationSelector(
         }
     }, [options, getDynamicOptions, integrationData]);
 
-    const handleSelectProfile = useCallback((user: UserProfile): void => {
+    const handleSelectDataType = useCallback((item: UserProfile | Channel): void => {
         if (!isMultiselect) {
-            handleSelect(user);
+            handleSelect(item);
             close();
         }
 
-        setSelectedIds((current) => handleIdSelection(dataSource, current, user));
-    }, [isMultiselect, handleIdSelection, handleSelect, close, dataSource]);
-
-    const handleSelectChannel = useCallback((channel: Channel): void => {
-        if (!isMultiselect) {
-            handleSelect(channel);
-            close();
-        }
-
-        setSelectedIds((current) => handleIdSelection(dataSource, current, channel));
+        setSelectedIds((current) => handleIdSelection(dataSource, current, item));
     }, [isMultiselect, handleIdSelection, handleSelect, close, dataSource]);
 
     const onHandleMultiselectSubmit = useCallback(() => {
-        if (dataSource === ViewConstants.DATA_SOURCE_USERS) {
+        if ([ViewConstants.DATA_SOURCE_USERS, ViewConstants.DATA_SOURCE_CHANNELS].includes(dataSource)) {
             // New multiselect
-            handleSelect(Object.values(selectedIds) as UserProfile[]);
+            handleSelect(Object.values(selectedIds) as (UserProfile[] | Channel[]));
         } else {
             // Legacy multiselect
             handleSelect(Object.values(multiselectSelected));
@@ -274,7 +267,7 @@ function IntegrationSelector(
 
         searchTimeoutId.current = setTimeout(async () => {
             if (!dataSource) {
-                setSearchResults(filterSearchData('', integrationData, text));
+                setSearchResults(filterSearchData('', integrationData as DialogOption[], text));
                 return;
             }
 
@@ -286,23 +279,21 @@ function IntegrationSelector(
 
             setLoading(false);
         }, General.SEARCH_TIMEOUT_MILLISECONDS);
-    }, [dataSource, integrationData, currentTeamId]);
+    }, [dataSource, integrationData]);
 
     // Effects
     useNavButtonPressed(SUBMIT_BUTTON_ID, componentId, onHandleMultiselectSubmit, [onHandleMultiselectSubmit]);
 
     useEffect(() => {
+        // Static and dynamic option search
+        searchDynamicOptions('');
+
         return () => {
             if (searchTimeoutId.current) {
                 clearTimeout(searchTimeoutId.current);
                 searchTimeoutId.current = null;
             }
         };
-    }, []);
-
-    useEffect(() => {
-        // Static and dynamic option search
-        searchDynamicOptions('');
     }, []);
 
     useEffect(() => {
@@ -429,7 +420,7 @@ function IntegrationSelector(
                         teammateNameDisplay={teammateNameDisplay}
                         term={term}
                         tutorialWatched={true}
-                        handleSelectProfile={handleSelectProfile}
+                        handleSelectProfile={handleSelectDataType}
                     />
                 );
             case ViewConstants.DATA_SOURCE_CHANNELS:
@@ -437,9 +428,8 @@ function IntegrationSelector(
                     <ServerChannelList
                         currentTeamId={currentTeamId}
                         term={term}
-                        handleSelectChannel={handleSelectChannel}
+                        handleSelectChannel={handleSelectDataType}
                     />
-
                 );
             default:
                 return (
