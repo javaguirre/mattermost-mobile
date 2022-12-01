@@ -18,6 +18,7 @@ type Props = {
     channels: Channel[];
     onSelectChannel: (channel: Channel) => void;
     term?: string;
+    selectedIds: {[id: string]: Channel};
     selectable?: boolean;
 }
 
@@ -55,6 +56,7 @@ export default function ChannelList({
     loading,
     term,
     channels,
+    selectedIds,
     selectable = false,
 }: Props) {
     const theme = useTheme();
@@ -67,14 +69,18 @@ export default function ChannelList({
     ], [style, keyboardHeight]);
 
     const renderItem = useCallback(({item}: {item: Channel}) => {
+        const selected = Boolean(selectedIds[item.id]);
+
         return (
             <ChannelListRow
                 channel={item}
                 testID='browse_channels.custom_list.channel_item'
                 onPress={onSelectChannel}
+                selectable={selectable}
+                selected={selected}
             />
         );
-    }, [onSelectChannel]);
+    }, [onSelectChannel, selectable, selectedIds]);
 
     const renderLoading = useCallback(() => {
         if (!loading) {

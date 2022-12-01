@@ -139,6 +139,8 @@ export default function ServerChannelList({
             channels={data}
             loading={false}
             onEndReached={onEndReached}
+            selectable={selectable}
+            selectedIds={selectedIds}
         />
     );
 }
