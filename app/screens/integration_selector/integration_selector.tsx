@@ -8,8 +8,6 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 
 import ServerChannelList from '@app/components/server_channel_list';
 import ServerUserList from '@app/components/server_user_list';
-import {t} from '@app/i18n';
-import FormattedText from '@components/formatted_text';
 import SearchBar from '@components/search';
 import {General, View as ViewConstants} from '@constants';
 import {useTheme} from '@context/theme';
@@ -21,8 +19,7 @@ import {
 import {changeOpacity, getKeyboardAppearanceFromTheme, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
 
-import CustomList from './custom_list';
-import OptionListRow from './option_list_row';
+import DialogOptionList from './dialog_option_list';
 import SelectedOptions from './selected_options';
 
 type DataType = DialogOption | Channel | UserProfile;
@@ -34,35 +31,6 @@ const SUBMIT_BUTTON_ID = 'submit-integration-selector-multiselect';
 
 const close = () => {
     popTopScreen();
-};
-
-const extractItemKey = (dataSource: string, item: DataType): string => {
-    switch (dataSource) {
-        case ViewConstants.DATA_SOURCE_USERS: {
-            const typedItem = item as UserProfile;
-            return typedItem.id;
-        }
-        case ViewConstants.DATA_SOURCE_CHANNELS: {
-            const typedItem = item as Channel;
-            return typedItem.id;
-        }
-        default: {
-            const typedItem = item as DialogOption;
-            return typedItem.value;
-        }
-    }
-};
-
-const toggleFromMap = <T extends DialogOption | Channel | UserProfile>(current: MultiselectSelectedMap, key: string, item: T): MultiselectSelectedMap => {
-    const newMap = {...current};
-
-    if (current[key]) {
-        delete newMap[key];
-    } else {
-        newMap[key] = item;
-    }
-
-    return newMap;
 };
 
 const filterSearchData = (source: string, searchData: DialogOption[], searchTerm: string) => {
@@ -194,17 +162,6 @@ function IntegrationSelector(
         return base;
     }, [theme.sidebarHeaderTextColor, intl]);
 
-    const handleSelectItem = useCallback((item: DialogOption) => {
-        if (!isMultiselect) {
-            handleSelect(item);
-            close();
-            return;
-        }
-
-        const itemKey = extractItemKey(dataSource, item);
-        setMultiselectSelected((current) => toggleFromMap(current, itemKey, item as DialogOption));
-    }, [isMultiselect, dataSource, handleSelect]);
-
     const handleRemoveOption = useCallback((item: Channel | DialogOption | UserProfile) => {
         const itemKey = extractItemKey(dataSource, item);
 
@@ -242,7 +199,7 @@ function IntegrationSelector(
         }
     }, [options, getDynamicOptions, integrationData]);
 
-    const handleSelectDataType = useCallback((item: UserProfile | Channel): void => {
+    const handleSelectDataType = useCallback((item: UserProfile | Channel | DialogOption): void => {
         if (!isMultiselect) {
             handleSelect(item);
             close();
@@ -345,62 +302,8 @@ function IntegrationSelector(
     }, []);
 
     // Renders
-    const renderLoading = useCallback(() => {
-        if (!loading) {
-            return null;
-        }
-
-        const text = {
-            id: t('mobile.integration_selector.loading_options'),
-            defaultMessage: 'Loading Options...',
-        };
-
-        return (
-            <View style={style.loadingContainer}>
-                <FormattedText
-                    {...text}
-                    style={style.loadingText}
-                />
-            </View>
-        );
-    }, [style, dataSource, loading, intl]);
-
-    const renderNoResults = useCallback((): JSX.Element | null => {
-        if (loading || page.current === -1) {
-            return null;
-        }
-
-        return (
-            <View style={style.noResultContainer}>
-                <FormattedText
-                    id='mobile.custom_list.no_results'
-                    defaultMessage='No Results'
-                    style={style.noResultText}
-                />
-            </View>
-        );
-    }, [loading, style]);
-
-    const renderOptionItem = useCallback((itemProps: any) => {
-        const itemSelected = Boolean(multiselectSelected[itemProps.item.value]);
-        return (
-            <OptionListRow
-                key={itemProps.id}
-                {...itemProps}
-                theme={theme}
-                selectable={isMultiselect}
-                selected={itemSelected}
-            />
-        );
-    }, [multiselectSelected, theme, isMultiselect]);
-
     const renderSelectedOptions = useCallback((): React.ReactElement<string> | null => {
-        let selectedItems: Channel[] | DialogOption[] | UserProfile[] = Object.values(multiselectSelected);
-
-        if ([ViewConstants.DATA_SOURCE_USERS, ViewConstants.DATA_SOURCE_CHANNELS].includes(dataSource)) {
-            // New multiselect
-            selectedItems = Object.values(selectedIds) as UserProfile[];
-        }
+        const selectedItems = Object.values(selectedIds) as (Channel[] | UserProfile[] | DialogOption[]);
 
         if (!selectedItems.length) {
             return null;
@@ -446,15 +349,11 @@ function IntegrationSelector(
                 );
             default:
                 return (
-                    <CustomList
-                        data={customListData as DialogOption[]}
-                        key='custom_list'
-                        loading={loading}
-                        loadingComponent={renderLoading()}
-                        noResults={renderNoResults}
-                        onRowPress={handleSelectItem}
-                        renderItem={renderOptionItem}
-                        theme={theme}
+                    <DialogOptionList
+                        term={term}
+                        data={integrationData as DialogOption[]}
+                        handleSelectOption={handleSelectDataType}
+                        selectable={isMultiselect}
                     />
                 );
         }
