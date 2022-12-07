@@ -9,7 +9,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import ServerChannelList from '@app/components/server_channel_list';
 import ServerUserList from '@app/components/server_user_list';
 import SearchBar from '@components/search';
-import {General, View as ViewConstants} from '@constants';
+import {View as ViewConstants} from '@constants';
 import {useTheme} from '@context/theme';
 import useNavButtonPressed from '@hooks/navigation_button_pressed';
 import {
@@ -25,7 +25,6 @@ import SelectedOptions from './selected_options';
 type DataType = DialogOption | Channel | UserProfile;
 type DataTypeList = DialogOption[] | Channel[] | UserProfile[];
 type Selection = DataType | DataTypeList;
-type MultiselectSelectedMap = Dictionary<DialogOption> | Dictionary<Channel> | Dictionary<UserProfile>;
 
 const SUBMIT_BUTTON_ID = 'submit-integration-selector-multiselect';
 
@@ -33,18 +32,21 @@ const close = () => {
     popTopScreen();
 };
 
-const filterSearchData = (source: string, searchData: DialogOption[], searchTerm: string) => {
-    if (!searchData) {
-        return [];
+const extractItemKey = (dataSource: string, item: DataType): string => {
+    switch (dataSource) {
+        case ViewConstants.DATA_SOURCE_USERS: {
+            const typedItem = item as UserProfile;
+            return typedItem.id;
+        }
+        case ViewConstants.DATA_SOURCE_CHANNELS: {
+            const typedItem = item as Channel;
+            return typedItem.id;
+        }
+        default: {
+            const typedItem = item as DialogOption;
+            return typedItem.value;
+        }
     }
-
-    const lowerCasedTerm = searchTerm.toLowerCase();
-
-    if (source === ViewConstants.DATA_SOURCE_DYNAMIC) {
-        return searchData;
-    }
-
-    return searchData.filter((option) => option.text && option.text.includes(lowerCasedTerm));
 };
 
 const handleIdSelection = (dataSource: string, currentIds: {[id: string]: DataType}, item: DataType) => {
@@ -66,12 +68,10 @@ export type Props = {
     options?: PostActionOption[];
     currentTeamId: string;
     currentUserId: string;
-    data?: DataTypeList;
     dataSource: string;
     handleSelect: (opt: Selection) => void;
     isMultiselect?: boolean;
     selected: SelectedDialogValue;
-    theme: Theme;
     teammateNameDisplay: string;
     componentId: string;
 }
@@ -118,34 +118,21 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
 });
 
 function IntegrationSelector(
-    {dataSource, data, isMultiselect = false, selected, handleSelect,
+    {dataSource, isMultiselect = false, selected, handleSelect,
         currentTeamId, currentUserId, componentId, getDynamicOptions, options, teammateNameDisplay}: Props) {
     const theme = useTheme();
-    const searchTimeoutId = useRef<NodeJS.Timeout | null>(null);
     const style = getStyleSheet(theme);
     const intl = useIntl();
 
     // HOOKS
-    const [integrationData, setIntegrationData] = useState<DataTypeList>(data || []);
-    const [loading, setLoading] = useState<boolean>(false);
     const [term, setTerm] = useState<string>('');
-    const [searchResults, setSearchResults] = useState<DataTypeList>([]);
+    const [dialogOptions, setSelectedDialogOptions] = useState<DialogOption[]>([]);
 
-    // DialogOptions, will be removed
-    const [multiselectSelected, setMultiselectSelected] = useState<MultiselectSelectedMap>({});
-
-    // Users, Channels selection
     const [selectedIds, setSelectedIds] = useState<{[id: string]: DataType}>({});
-
-    // Deprecated
-    const [customListData, setCustomListData] = useState<DataTypeList>([]);
-
-    const page = useRef<number>(-1);
 
     // Callbacks
     const clearSearch = useCallback(() => {
         setTerm('');
-        setSearchResults([]);
     }, []);
 
     // This is the button to submit multiselect options
@@ -164,40 +151,12 @@ function IntegrationSelector(
 
     const handleRemoveOption = useCallback((item: Channel | DialogOption | UserProfile) => {
         const itemKey = extractItemKey(dataSource, item);
-
-        if ([ViewConstants.DATA_SOURCE_USERS, ViewConstants.DATA_SOURCE_CHANNELS].includes(dataSource)) {
-            setSelectedIds((current) => {
-                const selectedIdItems = {...current};
-                delete selectedIdItems[itemKey];
-                return selectedIdItems;
-            });
-        } else {
-            setMultiselectSelected((current) => {
-                const multiselectSelectedItems = {...current};
-                delete multiselectSelectedItems[itemKey];
-                return multiselectSelectedItems;
-            });
-        }
+        setSelectedIds((current) => {
+            const selectedIdItems = {...current};
+            delete selectedIdItems[itemKey];
+            return selectedIdItems;
+        });
     }, [dataSource]);
-
-    const searchDynamicOptions = useCallback(async (searchTerm = '') => {
-        if (options && options !== integrationData && !searchTerm) {
-            setIntegrationData(options);
-        }
-
-        if (!getDynamicOptions) {
-            return;
-        }
-
-        const results: DialogOption[] = await getDynamicOptions(searchTerm.toLowerCase());
-        const searchData = results || [];
-
-        if (searchTerm) {
-            setSearchResults(searchData);
-        } else {
-            setIntegrationData(searchData);
-        }
-    }, [options, getDynamicOptions, integrationData]);
 
     const handleSelectDataType = useCallback((item: UserProfile | Channel | DialogOption): void => {
         if (!isMultiselect) {
@@ -209,15 +168,9 @@ function IntegrationSelector(
     }, [isMultiselect, handleIdSelection, handleSelect, close, dataSource]);
 
     const onHandleMultiselectSubmit = useCallback(() => {
-        if ([ViewConstants.DATA_SOURCE_USERS, ViewConstants.DATA_SOURCE_CHANNELS].includes(dataSource)) {
-            // New multiselect
-            handleSelect(Object.values(selectedIds) as (UserProfile[] | Channel[]));
-        } else {
-            // Legacy multiselect
-            handleSelect(Object.values(multiselectSelected));
-        }
+        handleSelect(Object.values(selectedIds) as (UserProfile[] | Channel[]));
         close();
-    }, [multiselectSelected, selectedIds, handleSelect]);
+    }, [selectedIds, handleSelect]);
 
     const onSearch = useCallback((text: string) => {
         if (!text) {
@@ -226,55 +179,10 @@ function IntegrationSelector(
         }
 
         setTerm(text);
-
-        if (searchTimeoutId.current) {
-            clearTimeout(searchTimeoutId.current);
-        }
-
-        searchTimeoutId.current = setTimeout(async () => {
-            if (!dataSource) {
-                setSearchResults(filterSearchData('', integrationData as DialogOption[], text));
-                return;
-            }
-
-            setLoading(true);
-
-            if (dataSource === ViewConstants.DATA_SOURCE_DYNAMIC) {
-                await searchDynamicOptions(text);
-            }
-
-            setLoading(false);
-        }, General.SEARCH_TIMEOUT_MILLISECONDS);
-    }, [dataSource, integrationData]);
+    }, [dataSource]);
 
     // Effects
     useNavButtonPressed(SUBMIT_BUTTON_ID, componentId, onHandleMultiselectSubmit, [onHandleMultiselectSubmit]);
-
-    useEffect(() => {
-        // Static and dynamic option search
-        searchDynamicOptions('');
-
-        return () => {
-            if (searchTimeoutId.current) {
-                clearTimeout(searchTimeoutId.current);
-                searchTimeoutId.current = null;
-            }
-        };
-    }, []);
-
-    useEffect(() => {
-        let listData: DataTypeList = integrationData;
-
-        if (term) {
-            listData = searchResults;
-        }
-
-        if (dataSource === ViewConstants.DATA_SOURCE_DYNAMIC) {
-            listData = (integrationData as DialogOption[]).filter((option) => option.text && option.text.toLowerCase().includes(term));
-        }
-
-        setCustomListData(listData);
-    }, [searchResults, integrationData]);
 
     useEffect(() => {
         if (!isMultiselect) {
@@ -287,19 +195,15 @@ function IntegrationSelector(
     }, [rightButton, componentId, isMultiselect]);
 
     useEffect(() => {
-        const multiselectItems: MultiselectSelectedMap = {};
-
-        if (isMultiselect && Array.isArray(selected) && !([ViewConstants.DATA_SOURCE_USERS, ViewConstants.DATA_SOURCE_CHANNELS].includes(dataSource))) {
-            for (const value of selected) {
-                const option = options?.find((opt) => opt.value === value);
-                if (option) {
-                    multiselectItems[value] = option;
-                }
-            }
-
-            setMultiselectSelected(multiselectItems);
+        if (!dataSource) {
+            setSelectedDialogOptions(options as DialogOption[]);
         }
-    }, []);
+
+        if (dataSource === ViewConstants.DATA_SOURCE_DYNAMIC && getDynamicOptions) {
+            getDynamicOptions().
+                then((dynamicOptions) => setSelectedDialogOptions(dynamicOptions));
+        }
+    }, [dataSource, dataSource === ViewConstants.DATA_SOURCE_DYNAMIC && getDynamicOptions]);
 
     // Renders
     const renderSelectedOptions = useCallback((): React.ReactElement<string> | null => {
@@ -320,7 +224,7 @@ function IntegrationSelector(
                 <View style={style.separator}/>
             </>
         );
-    }, [multiselectSelected, selectedIds, style, theme]);
+    }, [selectedIds, style, theme]);
 
     const renderDataTypeList = () => {
         switch (dataSource) {
@@ -351,9 +255,10 @@ function IntegrationSelector(
                 return (
                     <DialogOptionList
                         term={term}
-                        data={integrationData as DialogOption[]}
+                        data={dialogOptions}
                         handleSelectOption={handleSelectDataType}
                         selectable={isMultiselect}
+                        selectedIds={selectedIds as {[id: string]: DialogOption}}
                     />
                 );
         }

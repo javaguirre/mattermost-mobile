@@ -1,12 +1,16 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
-import React, {useCallback} from 'react';
+import React, {useCallback, useEffect} from 'react';
 import {
-    Platform, FlatList, RefreshControl, View,
+    Platform, FlatList, View,
 } from 'react-native';
 
+import FormattedText from '@app/components/formatted_text';
+import {useTheme} from '@app/context/theme';
 import {makeStyleSheetFromTheme, changeOpacity} from '@utils/theme';
 import {typography} from '@utils/typography';
+
+import OptionListRow from '../option_list_row';
 
 const INITIAL_BATCH_TO_RENDER = 15;
 
@@ -15,10 +19,21 @@ type Props = {
     selectable?: boolean;
     term: string;
     handleSelectOption: (item: DialogOption) => void;
+    selectedIds: {[id: string]: DialogOption};
 }
 
-const keyExtractor = (item: any): string => {
-    return item.id || item.key || item.value || item;
+const filterSearchData = (source: string, searchData: DialogOption[], searchTerm: string) => {
+    if (!searchData) {
+        return [];
+    }
+
+    const lowerCasedTerm = searchTerm.toLowerCase();
+
+    if (source === ViewConstants.DATA_SOURCE_DYNAMIC) {
+        return searchData;
+    }
+
+    return searchData.filter((option) => option.text && option.text.includes(lowerCasedTerm));
 };
 
 const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
@@ -84,124 +99,131 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
 });
 
 function DialogOptionList({
-    term, handleSelectOption, selectable, data,
+    term, handleSelectOption, selectable = false, selectedIds, data,
 }: Props) {
-    const style = getStyleFromTheme(theme);
+    const theme = useTheme();
 
     // Renders
-    const renderEmptyList = useCallback(() => {
-        return noResults || null;
-    }, [noResults]);
+    // const renderEmptyList = useCallback(() => {
+    //     return noResults || null;
+    // }, [noResults]);
 
-    const renderSeparator = useCallback(() => {
-        if (!shouldRenderSeparator) {
-            return null;
-        }
+    // const renderLoading = useCallback(() => {
+    //     if (!loading) {
+    //         return null;
+    //     }
 
-        return (
-            <View style={style.separator}/>
-        );
-    }, [shouldRenderSeparator, style]);
+    //     const text = {
+    //         id: t('mobile.integration_selector.loading_options'),
+    //         defaultMessage: 'Loading Options...',
+    //     };
 
-    const renderLoading = useCallback(() => {
-        if (!loading) {
-            return null;
-        }
-
-        const text = {
-            id: t('mobile.integration_selector.loading_options'),
-            defaultMessage: 'Loading Options...',
-        };
-
-        return (
-            <View style={style.loadingContainer}>
-                <FormattedText
-                    {...text}
-                    style={style.loadingText}
-                />
-            </View>
-        );
-    }, [style, dataSource, loading, intl]);
-
-    const renderNoResults = useCallback((): JSX.Element | null => {
-        if (loading || page.current === -1) {
-            return null;
-        }
-
-        return (
-            <View style={style.noResultContainer}>
-                <FormattedText
-                    id='mobile.custom_list.no_results'
-                    defaultMessage='No Results'
-                    style={style.noResultText}
-                />
-            </View>
-        );
-    }, [loading, style]);
+    //     return (
+    //         <View style={style.loadingContainer}>
+    //             <FormattedText
+    //                 {...text}
+    //                 style={style.loadingText}
+    //             />
+    //         </View>
+    //     );
+    // }, [style, dataSource, loading, intl]);
 
     const renderOptionItem = useCallback((itemProps: any) => {
-        const itemSelected = Boolean(multiselectSelected[itemProps.item.value]);
+        const itemSelected = Boolean(selectedIds[itemProps.item.value]);
         return (
             <OptionListRow
-                key={itemProps.id}
-                {...itemProps}
+                id={itemProps.id}
                 theme={theme}
-                selectable={isMultiselect}
+                item={itemProps.item}
+                key={itemProps.id}
+                onPress={handleSelectOption}
+                selectable={selectable}
                 selected={itemSelected}
             />
         );
-    }, [multiselectSelected, theme, isMultiselect]);
+    }, [selectedIds, selectable]);
 
-    // const renderListItem = useCallback(({item}: any) => {
-    //     const props: ListItemProps = {
-    //         id: item.key,
-    //         item,
-    //         selected: item.selected,
-    //         selectable,
-    //         enabled: true,
-    //         onPress: onRowPress,
-    //     };
-
-    //     if ('disableSelect' in item) {
-    //         props.enabled = !item.disableSelect;
+    // const searchDynamicOptions = useCallback(async (searchTerm = '') => {
+    //     if (options && options !== integrationData && !searchTerm) {
+    //         setIntegrationData(options);
     //     }
 
-    //     return renderItem(props);
-    // }, [onRowPress, selectable, renderItem]);
+    //     if (!getDynamicOptions) {
+    //         return;
+    //     }
 
-    const renderFooter = useCallback((): React.ReactElement<any, string> | null => {
-        if (!loading || !loadingComponent) {
-            return null;
-        }
-        return loadingComponent;
-    }, [loading, loadingComponent]);
+    //     const results: DialogOption[] = await getDynamicOptions(searchTerm.toLowerCase());
+    //     const searchData = results || [];
 
-    let refreshControl;
-    if (canRefresh) {
-        refreshControl = (
-            <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-            />);
-    }
+    //     if (searchTerm) {
+    //         setSearchResults(searchData);
+    //     } else {
+    //         setIntegrationData(searchData);
+    //     }
+    // }, [options, getDynamicOptions, integrationData]);
+
+    // useEffect(() => {
+    //     const multiselectItems: MultiselectSelectedMap = {};
+
+    //     if (isMultiselect && Array.isArray(selected) && !([ViewConstants.DATA_SOURCE_USERS, ViewConstants.DATA_SOURCE_CHANNELS].includes(dataSource))) {
+    //         for (const value of selected) {
+    //             const option = options?.find((opt) => opt.value === value);
+    //             if (option) {
+    //                 multiselectItems[value] = option;
+    //             }
+    //         }
+
+    //         setMultiselectSelected(multiselectItems);
+    //     }
+    // }, []);
+
+    // useEffect(() => {
+    //     setLoading(true);
+
+    //     if (dataSource === ViewConstants.DATA_SOURCE_DYNAMIC) {
+    //         await searchDynamicOptions(text);
+    //     }
+
+    //     setLoading(false);
+    // }, [term]);
+
+    // useEffect(() => {
+    //     let listData: DialogOption[] = data;
+
+    //     if (term) {
+    //         listData = searchResults;
+    //     }
+
+    //     if (dataSource === ViewConstants.DATA_SOURCE_DYNAMIC) {
+    //         listData = (integrationData as DialogOption[]).filter((option) => option.text && option.text.toLowerCase().includes(term));
+    //     }
+
+    //     setIntegrationData(listData);
+    // }, [searchResults]);
+
+    // useEffect(() => {
+    //     // Static and dynamic option search
+    //     searchDynamicOptions('');
+
+    //     return () => {
+    //         if (searchTimeoutId.current) {
+    //             clearTimeout(searchTimeoutId.current);
+    //             searchTimeoutId.current = null;
+    //         }
+    //     };
+    // }, []);
 
     return (
         <FlatList
-            contentContainerStyle={style.container}
             data={data}
             keyboardShouldPersistTaps='always'
-            keyExtractor={keyExtractor}
             initialNumToRender={INITIAL_BATCH_TO_RENDER}
-            ItemSeparatorComponent={renderSeparator}
-            ListEmptyComponent={renderEmptyList()}
-            ListFooterComponent={renderFooter}
+
+            // ListEmptyComponent={renderEmptyList()}
             maxToRenderPerBatch={INITIAL_BATCH_TO_RENDER + 1}
-            refreshControl={refreshControl}
             removeClippedSubviews={true}
-            renderItem={renderListItem}
+            renderItem={renderOptionItem}
             scrollEventThrottle={60}
-            style={style.list}
-            testID={testID}
         />
     );
 }

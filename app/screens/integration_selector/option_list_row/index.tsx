@@ -4,22 +4,23 @@
 import React, {useCallback} from 'react';
 import {
     Text,
+    TouchableOpacity,
     View,
 } from 'react-native';
 
+import CompassIcon from '@app/components/compass_icon';
 import {makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
 
-import CustomListRow, {Props as CustomListRowProps} from '../custom_list_row';
-
-type OptionListRowProps = {
+type Props = {
     id: string;
     theme: object;
     item: { text: string; value: string };
     onPress: (item: DialogOption) => void;
+    enabled?: boolean;
+    selectable?: boolean;
+    selected?: boolean;
 }
-
-type Props = OptionListRowProps & CustomListRowProps;
 
 const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
     return {
@@ -44,7 +45,7 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
 });
 
 const OptionListRow = ({
-    enabled, selectable, selected, theme, item, onPress, id,
+    enabled = true, selectable = false, selected = false, theme, item, onPress, id,
 }: Props) => {
     const {text} = item;
     const style = getStyleFromTheme(theme);
@@ -55,21 +56,30 @@ const OptionListRow = ({
 
     return (
         <View style={style.container}>
-            <CustomListRow
-                id={id}
+            <TouchableOpacity
+                style={style.container}
                 onPress={onPressRow}
-                enabled={enabled}
-                selectable={selectable}
-                selected={selected}
             >
-                <View style={style.textContainer}>
-                    <View>
-                        <Text style={style.optionText}>
-                            {text}
-                        </Text>
+                <Text>{text}</Text>
+
+                {selectable &&
+                <View style={style.selectorContainer}>
+                    <View
+                        testID={id}
+                        style={[style.selector, (selected && style.selectorFilled), (!enabled &&
+ style.selectorDisabled)]}
+                    >
+                        {selected &&
+                            <CompassIcon
+                                name='check'
+                                size={24}
+                                color='#fff'
+                            />
+                        }
                     </View>
                 </View>
-            </CustomListRow>
+                }
+            </TouchableOpacity>
         </View>
     );
 };
