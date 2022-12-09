@@ -1,11 +1,10 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
-import React, {useCallback, useEffect} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
     Platform, FlatList, View,
 } from 'react-native';
 
-import FormattedText from '@app/components/formatted_text';
 import {useTheme} from '@app/context/theme';
 import {makeStyleSheetFromTheme, changeOpacity} from '@utils/theme';
 import {typography} from '@utils/typography';
@@ -22,18 +21,14 @@ type Props = {
     selectedIds: {[id: string]: DialogOption};
 }
 
-const filterSearchData = (source: string, searchData: DialogOption[], searchTerm: string) => {
+const filterSearchData = (searchData: DialogOption[], searchTerm: string) => {
     if (!searchData) {
         return [];
     }
 
     const lowerCasedTerm = searchTerm.toLowerCase();
-
-    if (source === ViewConstants.DATA_SOURCE_DYNAMIC) {
-        return searchData;
-    }
-
-    return searchData.filter((option) => option.text && option.text.includes(lowerCasedTerm));
+    const results = searchData.filter((option) => option.text && option.text.includes(lowerCasedTerm));
+    return results;
 };
 
 const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
@@ -102,6 +97,8 @@ function DialogOptionList({
     term, handleSelectOption, selectable = false, selectedIds, data,
 }: Props) {
     const theme = useTheme();
+
+    const [optionData, setOptionData] = useState<DialogOption[]>(data);
 
     // Renders
     // const renderEmptyList = useCallback(() => {
@@ -177,15 +174,23 @@ function DialogOptionList({
     //     }
     // }, []);
 
-    // useEffect(() => {
-    //     setLoading(true);
+    useEffect(() => {
+        // setLoading(true);
 
-    //     if (dataSource === ViewConstants.DATA_SOURCE_DYNAMIC) {
-    //         await searchDynamicOptions(text);
-    //     }
+        // TODO Dynamic
+        // if (dataSource === ViewConstants.DATA_SOURCE_DYNAMIC) {
+        //     await searchDynamicOptions(text);
+        // }
 
-    //     setLoading(false);
-    // }, [term]);
+        if (!term) {
+            setOptionData(data);
+            return;
+        }
+
+        setOptionData(filterSearchData(data, term));
+
+        // setLoading(false);
+    }, [term]);
 
     // useEffect(() => {
     //     let listData: DialogOption[] = data;
@@ -202,20 +207,20 @@ function DialogOptionList({
     // }, [searchResults]);
 
     // useEffect(() => {
-    //     // Static and dynamic option search
-    //     searchDynamicOptions('');
+    // Static and dynamic option search
+    // searchDynamicOptions('');
 
-    //     return () => {
-    //         if (searchTimeoutId.current) {
-    //             clearTimeout(searchTimeoutId.current);
-    //             searchTimeoutId.current = null;
-    //         }
-    //     };
-    // }, []);
+    // return () => {
+    //     if (searchTimeoutId.current) {
+    //         clearTimeout(searchTimeoutId.current);
+    //         searchTimeoutId.current = null;
+    //     }
+    // };
+    // }, [term]);
 
     return (
         <FlatList
-            data={data}
+            data={optionData}
             keyboardShouldPersistTaps='always'
             initialNumToRender={INITIAL_BATCH_TO_RENDER}
 
