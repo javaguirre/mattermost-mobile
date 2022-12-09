@@ -1,9 +1,11 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 import React, {useCallback, useEffect, useState} from 'react';
-import {Platform, FlatList} from 'react-native';
+import {Platform, FlatList, View} from 'react-native';
 
+import FormattedText from '@app/components/formatted_text';
 import {useTheme} from '@app/context/theme';
+import {t} from '@app/i18n';
 import {makeStyleSheetFromTheme, changeOpacity} from '@utils/theme';
 import {typography} from '@utils/typography';
 
@@ -18,6 +20,7 @@ type Props = {
     term: string;
     handleSelectOption: (item: DialogOption) => void;
     selectedIds: {[id: string]: DialogOption};
+    testID: string;
 }
 
 const filterSearchData = (searchData: DialogOption[], searchTerm: string) => {
@@ -93,11 +96,42 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
 });
 
 function DialogOptionList({
-    term, handleSelectOption, selectable = false, selectedIds, data = [], getDynamicOptions,
+    term, handleSelectOption, selectable = false,
+    selectedIds, data = [], getDynamicOptions, testID,
 }: Props) {
     const theme = useTheme();
+    const style = getStyleFromTheme(theme);
 
     const [optionData, setOptionData] = useState<DialogOption[]>(data);
+    const [loading, setLoading] = useState(false);
+
+    const updateOptionData = async () => {
+        if (getDynamicOptions) {
+            setOptionData(await getDynamicOptions(term));
+        } else {
+            setOptionData(filterSearchData(data, term));
+        }
+    };
+
+    const renderFooter = (): React.ReactElement<string> | null => {
+        const text = {
+            id: t('mobile.integration_selector.loading_options'),
+            defaultMessage: 'Loading Options...',
+        };
+
+        if (!loading) {
+            return null;
+        }
+
+        return (
+            <View style={style.loadingContainer}>
+                <FormattedText
+                    {...text}
+                    style={style.loadingText}
+                />
+            </View>
+        );
+    };
 
     const renderOptionItem = useCallback((itemProps: OptionListRowProps) => {
         const itemSelected = Boolean(selectedIds[itemProps.item.value]);
@@ -115,29 +149,41 @@ function DialogOptionList({
     }, [selectedIds, selectable]);
 
     useEffect(() => {
-        // setLoading(true);
+        setLoading(true);
+        updateOptionData();
+        setLoading(false);
+    }, [term]);
 
-        if (getDynamicOptions) {
-            getDynamicOptions(term).
-                then((dynamicOptions) => setOptionData(dynamicOptions));
-        } else {
-            setOptionData(filterSearchData(data, term));
+    const renderEmptyList = useCallback((): JSX.Element | null => {
+        if (loading) {
+            return null;
         }
 
-        // setLoading(false);
-    }, [term]);
+        return (
+            <View style={style.noResultContainer}>
+                <FormattedText
+                    id='mobile.custom_list.no_results'
+                    defaultMessage='No Results'
+                    style={style.noResultText}
+                />
+            </View>
+        );
+    }, [loading, style]);
 
     return (
         <FlatList
+            contentContainerStyle={style.container}
             data={optionData}
             keyboardShouldPersistTaps='always'
             initialNumToRender={INITIAL_BATCH_TO_RENDER}
-
-            // ListEmptyComponent={renderEmptyList()}
+            ListEmptyComponent={renderEmptyList()}
+            ListFooterComponent={renderFooter()}
             maxToRenderPerBatch={INITIAL_BATCH_TO_RENDER + 1}
             removeClippedSubviews={true}
             renderItem={renderOptionItem}
             scrollEventThrottle={60}
+            style={style.list}
+            testID={testID}
         />
     );
 }

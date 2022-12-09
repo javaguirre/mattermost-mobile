@@ -63,6 +63,23 @@ const handleIdSelection = (dataSource: string, currentIds: {[id: string]: DataTy
     return newSelectedIds;
 };
 
+const getIdsFromSelected = (selected: SelectedDialogValue, options: PostActionOption[]) => {
+    const multiselectItems: {[id: string]: DataType} = {};
+
+    if (!selected) {
+        return multiselectItems;
+    }
+
+    for (const value of selected) {
+        const option = options?.find((opt) => opt.value === value);
+        if (option) {
+            multiselectItems[value] = option;
+        }
+    }
+
+    return multiselectItems;
+};
+
 export type Props = {
     getDynamicOptions?: (userInput?: string) => Promise<DialogOption[]>;
     options?: PostActionOption[];
@@ -183,6 +200,13 @@ function IntegrationSelector(
     useNavButtonPressed(SUBMIT_BUTTON_ID, componentId, onHandleMultiselectSubmit, [onHandleMultiselectSubmit]);
 
     useEffect(() => {
+        if (isMultiselect && Array.isArray(selected) && options &&
+            !([ViewConstants.DATA_SOURCE_USERS, ViewConstants.DATA_SOURCE_CHANNELS].includes(dataSource))) {
+            setSelectedIds(getIdsFromSelected(selected, options));
+        }
+    }, [dataSource, options, selected]);
+
+    useEffect(() => {
         if (!isMultiselect) {
             return;
         }
@@ -241,6 +265,7 @@ function IntegrationSelector(
             default:
                 return (
                     <DialogOptionList
+                        testID='integration_selector.dialog_option_list'
                         term={term}
                         data={options}
                         getDynamicOptions={getDynamicOptions}
