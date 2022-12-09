@@ -41,6 +41,32 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
             color: theme.centerChannelColor,
             ...typography('Body', 200, 'Regular'),
         },
+        children: {
+            flex: 1,
+            flexDirection: 'row',
+        },
+        selector: {
+            height: 28,
+            width: 28,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: 'rgba(61, 60, 64, 0.32)',
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        selectorContainer: {
+            height: 50,
+            paddingRight: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        selectorDisabled: {
+            borderColor: 'rgba(61, 60, 64, 0.16)',
+        },
+        selectorFilled: {
+            backgroundColor: '#166DE0',
+            borderWidth: 0,
+        },
     };
 });
 
@@ -55,14 +81,11 @@ const OptionListRow = ({
     }, [onPress, item]);
 
     return (
-        <View style={style.container}>
-            <TouchableOpacity
-                style={style.container}
-                onPress={onPressRow}
-            >
-                <Text>{text}</Text>
-
-                {selectable &&
+        <TouchableOpacity
+            style={style.container}
+            onPress={onPressRow}
+        >
+            {selectable &&
                 <View style={style.selectorContainer}>
                     <View
                         testID={id}
@@ -78,9 +101,18 @@ const OptionListRow = ({
                         }
                     </View>
                 </View>
-                }
-            </TouchableOpacity>
-        </View>
+            }
+
+            <View
+                testID={id}
+                style={style.children}
+            >
+                <View style={style.textContainer}>
+                    <Text style={style.optionText}>{text}</Text>
+                </View>
+            </View>
+
+        </TouchableOpacity>
     );
 };
 
