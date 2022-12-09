@@ -126,8 +126,6 @@ function IntegrationSelector(
 
     // HOOKS
     const [term, setTerm] = useState<string>('');
-    const [dialogOptions, setSelectedDialogOptions] = useState<DialogOption[]>([]);
-
     const [selectedIds, setSelectedIds] = useState<{[id: string]: DataType}>({});
 
     // Callbacks
@@ -194,17 +192,6 @@ function IntegrationSelector(
         });
     }, [rightButton, componentId, isMultiselect]);
 
-    useEffect(() => {
-        if (!dataSource) {
-            setSelectedDialogOptions(options as DialogOption[]);
-        }
-
-        if (dataSource === ViewConstants.DATA_SOURCE_DYNAMIC && getDynamicOptions) {
-            getDynamicOptions().
-                then((dynamicOptions) => setSelectedDialogOptions(dynamicOptions));
-        }
-    }, [dataSource, dataSource === ViewConstants.DATA_SOURCE_DYNAMIC && getDynamicOptions]);
-
     // Renders
     const renderSelectedOptions = useCallback((): React.ReactElement<string> | null => {
         const selectedItems = Object.values(selectedIds) as (Channel[] | UserProfile[] | DialogOption[]);
@@ -255,7 +242,8 @@ function IntegrationSelector(
                 return (
                     <DialogOptionList
                         term={term}
-                        data={dialogOptions}
+                        data={options}
+                        getDynamicOptions={getDynamicOptions}
                         handleSelectOption={handleSelectDataType}
                         selectable={isMultiselect}
                         selectedIds={selectedIds as {[id: string]: DialogOption}}

@@ -14,7 +14,8 @@ import OptionListRow from '../option_list_row';
 const INITIAL_BATCH_TO_RENDER = 15;
 
 type Props = {
-    data: DialogOption[];
+    data?: DialogOption[];
+    getDynamicOptions?: (userInput?: string) => Promise<DialogOption[]>;
     selectable?: boolean;
     term: string;
     handleSelectOption: (item: DialogOption) => void;
@@ -94,7 +95,7 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
 });
 
 function DialogOptionList({
-    term, handleSelectOption, selectable = false, selectedIds, data,
+    term, handleSelectOption, selectable = false, selectedIds, data = [], getDynamicOptions,
 }: Props) {
     const theme = useTheme();
 
@@ -177,17 +178,12 @@ function DialogOptionList({
     useEffect(() => {
         // setLoading(true);
 
-        // TODO Dynamic
-        // if (dataSource === ViewConstants.DATA_SOURCE_DYNAMIC) {
-        //     await searchDynamicOptions(text);
-        // }
-
-        if (!term) {
-            setOptionData(data);
-            return;
+        if (getDynamicOptions) {
+            getDynamicOptions(term).
+                then((dynamicOptions) => setOptionData(dynamicOptions));
+        } else {
+            setOptionData(filterSearchData(data, term));
         }
-
-        setOptionData(filterSearchData(data, term));
 
         // setLoading(false);
     }, [term]);
