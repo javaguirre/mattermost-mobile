@@ -1,15 +1,13 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 import React, {useCallback, useEffect, useState} from 'react';
-import {
-    Platform, FlatList, View,
-} from 'react-native';
+import {Platform, FlatList} from 'react-native';
 
 import {useTheme} from '@app/context/theme';
 import {makeStyleSheetFromTheme, changeOpacity} from '@utils/theme';
 import {typography} from '@utils/typography';
 
-import OptionListRow from '../option_list_row';
+import OptionListRow, {Props as OptionListRowProps} from '../option_list_row';
 
 const INITIAL_BATCH_TO_RENDER = 15;
 
@@ -101,32 +99,7 @@ function DialogOptionList({
 
     const [optionData, setOptionData] = useState<DialogOption[]>(data);
 
-    // Renders
-    // const renderEmptyList = useCallback(() => {
-    //     return noResults || null;
-    // }, [noResults]);
-
-    // const renderLoading = useCallback(() => {
-    //     if (!loading) {
-    //         return null;
-    //     }
-
-    //     const text = {
-    //         id: t('mobile.integration_selector.loading_options'),
-    //         defaultMessage: 'Loading Options...',
-    //     };
-
-    //     return (
-    //         <View style={style.loadingContainer}>
-    //             <FormattedText
-    //                 {...text}
-    //                 style={style.loadingText}
-    //             />
-    //         </View>
-    //     );
-    // }, [style, dataSource, loading, intl]);
-
-    const renderOptionItem = useCallback((itemProps: any) => {
+    const renderOptionItem = useCallback((itemProps: OptionListRowProps) => {
         const itemSelected = Boolean(selectedIds[itemProps.item.value]);
         return (
             <OptionListRow
@@ -141,40 +114,6 @@ function DialogOptionList({
         );
     }, [selectedIds, selectable]);
 
-    // const searchDynamicOptions = useCallback(async (searchTerm = '') => {
-    //     if (options && options !== integrationData && !searchTerm) {
-    //         setIntegrationData(options);
-    //     }
-
-    //     if (!getDynamicOptions) {
-    //         return;
-    //     }
-
-    //     const results: DialogOption[] = await getDynamicOptions(searchTerm.toLowerCase());
-    //     const searchData = results || [];
-
-    //     if (searchTerm) {
-    //         setSearchResults(searchData);
-    //     } else {
-    //         setIntegrationData(searchData);
-    //     }
-    // }, [options, getDynamicOptions, integrationData]);
-
-    // useEffect(() => {
-    //     const multiselectItems: MultiselectSelectedMap = {};
-
-    //     if (isMultiselect && Array.isArray(selected) && !([ViewConstants.DATA_SOURCE_USERS, ViewConstants.DATA_SOURCE_CHANNELS].includes(dataSource))) {
-    //         for (const value of selected) {
-    //             const option = options?.find((opt) => opt.value === value);
-    //             if (option) {
-    //                 multiselectItems[value] = option;
-    //             }
-    //         }
-
-    //         setMultiselectSelected(multiselectItems);
-    //     }
-    // }, []);
-
     useEffect(() => {
         // setLoading(true);
 
@@ -187,32 +126,6 @@ function DialogOptionList({
 
         // setLoading(false);
     }, [term]);
-
-    // useEffect(() => {
-    //     let listData: DialogOption[] = data;
-
-    //     if (term) {
-    //         listData = searchResults;
-    //     }
-
-    //     if (dataSource === ViewConstants.DATA_SOURCE_DYNAMIC) {
-    //         listData = (integrationData as DialogOption[]).filter((option) => option.text && option.text.toLowerCase().includes(term));
-    //     }
-
-    //     setIntegrationData(listData);
-    // }, [searchResults]);
-
-    // useEffect(() => {
-    // Static and dynamic option search
-    // searchDynamicOptions('');
-
-    // return () => {
-    //     if (searchTimeoutId.current) {
-    //         clearTimeout(searchTimeoutId.current);
-    //         searchTimeoutId.current = null;
-    //     }
-    // };
-    // }, [term]);
 
     return (
         <FlatList

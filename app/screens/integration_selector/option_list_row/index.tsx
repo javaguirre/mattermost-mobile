@@ -12,7 +12,7 @@ import CompassIcon from '@app/components/compass_icon';
 import {makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
 
-type Props = {
+export type Props = {
     id: string;
     theme: object;
     item: { text: string; value: string };
